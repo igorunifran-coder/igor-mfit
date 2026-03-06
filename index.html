@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>Igor Ferreira Team</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0a;--s:#141414;--s2:#1e1e1e;--b:#2a2a2a;--a:#e8ff00;--a2:#ff6b00;--t:#f0f0f0;--m:#666;--ok:#00e87a;--err:#ff4444;--r:12px}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-height:100vh;padding-bottom:40px}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at top left,rgba(232,255,0,.05),transparent 60%),radial-gradient(ellipse at bottom right,rgba(255,107,0,.04),transparent 60%);pointer-events:none;z-index:0}
+
+/* HEADER */
+.hdr{padding:20px 16px 16px;border-bottom:1px solid var(--b);position:relative;z-index:1}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.brand{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;line-height:1}
+.brand span{color:var(--a)}
+.pill{background:rgba(0,232,122,.1);border:1px solid rgba(0,232,122,.25);color:var(--ok);font-family:'JetBrains Mono',monospace;font-size:9px;padding:5px 10px;border-radius:100px;display:flex;align-items:center;gap:5px}
+.dot{width:5px;height:5px;background:var(--ok);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sub{font-size:11px;color:var(--m)}
+
+/* CONTAINER */
+.wrap{padding:0 16px;position:relative;z-index:1}
+.sec{margin-top:22px}
+.slabel{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--a);margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.slabel::after{content:'';flex:1;height:1px;background:var(--b)}
+
+/* FORM */
+.field{margin-bottom:11px}
+label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--m);margin-bottom:6px}
+label em{color:var(--a);font-style:normal}
+input,select,textarea{background:var(--s);border:1px solid var(--b);color:var(--t);padding:13px 14px;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:16px;width:100%;transition:border-color .2s;appearance:none;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a);box-shadow:0 0 0 3px rgba(232,255,0,.07)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer}
+select option{background:#1a1a1a}
+textarea{resize:none;min-height:66px;line-height:1.5;font-size:15px}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* LEVEL */
+.lvl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lvl{background:var(--s);border:1px solid var(--b);color:var(--m);padding:11px 6px;border-radius:var(--r);cursor:pointer;text-align:center;transition:all .15s;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500}
+.lvl .ico{font-size:20px;display:block;margin-bottom:3px}
+.lvl.on{background:rgba(232,255,0,.1);border-color:var(--a);color:var(--a)}
+
+/* DIAS */
+.dias{display:flex;gap:7px}
+.dia{background:var(--s);border:1px solid var(--b);color:var(--m);flex:1;height:44px;border-radius:var(--r);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.dia.on{background:rgba(232,255,0,.1);border-color:var(--a);color:var(--a)}
+
+/* BTN */
+.btn-g{width:100%;background:var(--a);color:#000;border:none;padding:16px;border-radius:var(--r);font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:3px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:18px}
+.btn-g:active{transform:scale(.98);background:#d4e800}
+.btn-g:disabled{background:var(--b);color:var(--m);cursor:not-allowed;transform:none}
+
+/* LOADING */
+.load{display:none;text-align:center;padding:36px 20px}
+.load.show{display:block}
+.bars{display:flex;justify-content:center;gap:5px;margin-bottom:14px}
+.bar{width:4px;height:30px;background:var(--a);border-radius:2px;animation:bar 1.2s ease-in-out infinite}
+.bar:nth-child(2){animation-delay:.15s}.bar:nth-child(3){animation-delay:.3s}.bar:nth-child(4){animation-delay:.45s}.bar:nth-child(5){animation-delay:.6s}
+@keyframes bar{0%,100%{transform:scaleY(.3);opacity:.3}50%{transform:scaleY(1);opacity:1}}
+.load-txt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--m);letter-spacing:2px}
+
+/* ERRO */
+.err{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:#ff7070;padding:12px 14px;border-radius:var(--r);font-size:14px;margin-top:10px;display:none}
+.err.show{display:block}
+
+/* RESULTADO */
+.result{display:none;margin-top:20px;animation:up .4s ease}
+.result.show{display:block}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ACTIONS */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.act{padding:12px 8px;border-radius:var(--r);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:600;transition:all .15s}
+.act:active{transform:scale(.97)}
+.act-copy{background:var(--s2);border:1px solid var(--b);color:var(--t)}
+.act-zap{background:#25d366;color:#000}
+.act-mfit{background:var(--a);color:#000;grid-column:1/-1;font-size:14px;padding:14px}
+.act-mfit:disabled{background:var(--b);color:var(--m);cursor:not-allowed}
+
+/* INFO CARDS */
+.info-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.info-card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:12px 14px}
+.info-card.full{grid-column:1/-1}
+.info-card.accent{border-color:rgba(232,255,0,.25);background:rgba(232,255,0,.04)}
+.info-card.orange{border-color:rgba(255,107,0,.25);background:rgba(255,107,0,.04)}
+.ic-label{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--m);margin-bottom:5px}
+.ic-val{font-size:13px;color:var(--t);line-height:1.4}
+.ic-val strong{color:var(--a)}
+
+/* VOLUME TABLE */
+.vol-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+.vol-table th{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--m);padding:5px 8px;text-align:left;border-bottom:1px solid var(--b)}
+.vol-table td{padding:7px 8px;border-bottom:1px solid rgba(42,42,42,.5);color:var(--t)}
+.vol-table tr:last-child td{border-bottom:none}
+.vol-bar{height:4px;background:var(--b);border-radius:2px;margin-top:3px;overflow:hidden}
+.vol-bar-fill{height:100%;background:var(--a);border-radius:2px;transition:width .6s ease}
+
+/* TREINO CARDS */
+.card{background:var(--s);border:1px solid var(--b);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.card-hdr{background:var(--s2);padding:12px 14px;border-bottom:1px solid var(--b)}
+.card-title{font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;color:var(--a)}
+.card-meta{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;padding:3px 7px;border-radius:4px;background:var(--b);color:var(--m)}
+.tag.ok{background:rgba(0,232,122,.1);color:var(--ok);border:1px solid rgba(0,232,122,.2)}
+
+.ex{padding:11px 14px;border-bottom:1px solid var(--b);display:flex;align-items:flex-start;gap:10px}
+.ex:last-child{border-bottom:none}
+.ex-info{flex:1;min-width:0}
+.ex-nome{font-size:14px;font-weight:500}
+.ex-grupo{font-size:11px;color:var(--a2);margin-top:2px;font-family:'JetBrains Mono',monospace;font-size:10px}
+.ex-obs{font-size:11px;color:var(--m);margin-top:3px;line-height:1.4}
+.ex-tec{background:rgba(255,107,0,.1);border:1px solid rgba(255,107,0,.25);color:var(--a2);font-size:10px;padding:4px 8px;border-radius:6px;margin-top:5px;line-height:1.4}
+.ex-bdg{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.bdg{background:var(--s2);border:1px solid var(--b);padding:5px 8px;border-radius:7px;text-align:center;min-width:44px}
+.bdg-v{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600}
+.bdg-l{font-size:8px;color:var(--m);display:block;margin-top:1px;letter-spacing:1px}
+
+/* CIÊNCIA */
+.sci{background:rgba(232,255,0,.04);border:1px solid rgba(232,255,0,.15);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.sci-title{font-family:'Bebas Neue',cursive;font-size:15px;letter-spacing:2px;color:var(--a);margin-bottom:8px}
+.sci-txt{font-size:13px;color:#ccc;line-height:1.5}
+
+/* TECNICAS */
+.tec-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.tec-item{background:var(--s);border:1px solid var(--b);border-left:3px solid var(--a2);border-radius:var(--r);padding:12px 14px}
+.tec-nome{font-family:'Bebas Neue',cursive;font-size:15px;letter-spacing:1px;color:var(--a2)}
+.tec-sci{font-size:11px;color:var(--m);margin-top:4px;line-height:1.4}
+.tec-when{font-size:11px;color:#aaa;margin-top:3px}
+
+/* DICAS */
+.dicas{background:rgba(0,232,122,.04);border:1px solid rgba(0,232,122,.15);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.dicas-title{font-family:'Bebas Neue',cursive;font-size:15px;letter-spacing:2px;color:var(--ok);margin-bottom:8px}
+.dica{font-size:13px;color:#ccc;padding:4px 0;display:flex;gap:8px;line-height:1.4}
+
+/* LOG */
+.log{background:var(--s);border:1px solid var(--b);border-radius:var(--r);padding:12px 14px;margin-top:10px;display:none;max-height:180px;overflow-y:auto}
+.log.show{display:block}
+.log-title{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--m);margin-bottom:8px;text-transform:uppercase}
+.log-line{font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 0;display:flex;gap:8px;line-height:1.4}
+.log-line .ts{color:var(--b);flex-shrink:0}
+.log-line.ok .msg{color:var(--ok)}
+.log-line.erro .msg{color:var(--err)}
+.log-line.info .msg{color:#aaa}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="brand">IGOR <span>FERREIRA</span> TEAM</div>
+    <div class="pill" id="pill"><div class="dot"></div><span id="pillTxt">...</span></div>
+  </div>
+  <div class="sub">⚡ IA Científica — Schoenfeld · ACSM · Krieger</div>
+</div>
+
+<div class="wrap">
+
+  <div class="sec">
+    <div class="slabel">01 — Aluno</div>
+    <div class="field"><label>Nome <em>*</em></label><input type="text" id="nome" placeholder="Ex: João Silva" autocomplete="name"></div>
+    <div class="field"><label>Objetivo <em>*</em></label>
+      <select id="obj">
+        <option value="">Selecione...</option>
+        <option value="hipertrofia">💪 Hipertrofia</option>
+        <option value="emagrecimento">🔥 Emagrecimento</option>
+        <option value="definição muscular">✂️ Definição Muscular</option>
+        <option value="força máxima">🏋️ Força Máxima</option>
+        <option value="condicionamento físico">❤️ Condicionamento</option>
+        <option value="reabilitação">🩺 Reabilitação</option>
+        <option value="resistência">🏃 Resistência</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="slabel">02 — Nível</div>
+    <div class="lvl-grid">
+      <button class="lvl" onclick="setNivel('iniciante',this)"><span class="ico">🌱</span>Iniciante<br><span style="font-size:10px;color:var(--m)">0–12 meses</span></button>
+      <button class="lvl" onclick="setNivel('intermediário',this)"><span class="ico">⚡</span>Intermediário<br><span style="font-size:10px;color:var(--m)">1–3 anos</span></button>
+      <button class="lvl" onclick="setNivel('avançado',this)"><span class="ico">🔥</span>Avançado<br><span style="font-size:10px;color:var(--m)">3+ anos</span></button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="slabel">03 — Parâmetros</div>
+    <div class="field"><label>Dias por Semana <em>*</em></label>
+      <div class="dias">
+        <button class="dia" onclick="setDia(2,this)">2x</button>
+        <button class="dia" onclick="setDia(3,this)">3x</button>
+        <button class="dia" onclick="setDia(4,this)">4x</button>
+        <button class="dia" onclick="setDia(5,this)">5x</button>
+        <button class="dia" onclick="setDia(6,this)">6x</button>
+      </div>
+    </div>
+    <div class="r2">
+      <div class="field"><label>Duração</label>
+        <select id="tempo"><option value="45 minutos">45 min</option><option value="60 minutos" selected>60 min</option><option value="75 minutos">75 min</option><option value="90 minutos">90 min</option></select>
+      </div>
+      <div class="field"><label>Divisão</label>
+        <select id="div"><option value="Full Body">Full Body</option><option value="AB">A/B</option><option value="ABC">A/B/C</option><option value="ABCD">A/B/C/D</option><option value="Push Pull Legs">PPL</option><option value="a critério da IA">IA decide</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Equipamentos</label>
+      <select id="equip"><option value="academia completa">Academia completa</option><option value="halteres e barras">Halteres e barras</option><option value="apenas máquinas">Apenas máquinas</option><option value="casa com equipamentos básicos">Casa — básico</option><option value="peso corporal">Peso corporal</option></select>
+    </div>
+    <div class="field"><label>Restrições / Lesões</label><textarea id="rest" placeholder="Ex: dor no joelho, cirurgia no ombro..."></textarea></div>
+    <div class="field"><label>Observações</label><textarea id="obs" placeholder="Ex: prefere máquinas, treina de manhã..."></textarea></div>
+  </div>
+
+  <button class="btn-g" id="btnG" onclick="gerar()">⚡ GERAR TREINO CIENTÍFICO</button>
+  <div class="err" id="errMsg"></div>
+
+  <div class="load" id="load">
+    <div class="bars"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+    <div class="load-txt" id="loadTxt">ANALISANDO PERFIL CIENTÍFICO...</div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="result" id="result">
+
+    <!-- AÇÕES -->
+    <div style="margin-bottom:14px;padding-top:4px">
+      <div style="font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:2px;color:var(--a);margin-bottom:12px">✅ TREINO CIENTÍFICO PRONTO</div>
+      <div class="acts">
+        <button class="act act-copy" onclick="copiar()">📋 COPIAR</button>
+        <button class="act act-zap" onclick="whatsapp()">📲 WHATSAPP</button>
+        <button class="act act-mfit" id="btnMfit" onclick="enviarMfit()">🤖 ENVIAR PRO MFIT AUTOMATICAMENTE</button>
+      </div>
+    </div>
+
+    <!-- PERFIL DO ALUNO -->
+    <div class="slabel">Perfil Identificado</div>
+    <div class="info-row">
+      <div class="info-card accent">
+        <div class="ic-label">Nível</div>
+        <div class="ic-val" id="rNivel">—</div>
+      </div>
+      <div class="info-card accent">
+        <div class="ic-label">Técnicas</div>
+        <div class="ic-val" id="rTecnicas">—</div>
+      </div>
+      <div class="info-card full">
+        <div class="ic-label">Descrição do Perfil</div>
+        <div class="ic-val" id="rPerfil">—</div>
+      </div>
+    </div>
+
+    <!-- VOLUME SEMANAL -->
+    <div class="slabel">Volume Semanal por Grupo</div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-hdr"><div class="card-title">📊 Distribuição de Volume</div><div id="volDesc" style="font-size:11px;color:var(--m);margin-top:3px"></div></div>
+      <div style="padding:12px 14px"><table class="vol-table" id="volTable"></table></div>
+    </div>
+
+    <!-- DIAS DE TREINO -->
+    <div class="slabel">Programação</div>
+    <div id="cards"></div>
+
+    <!-- TÉCNICAS USADAS -->
+    <div id="tecSection" style="display:none">
+      <div class="slabel">Técnicas Intensificadoras</div>
+      <div class="tec-list" id="tecList"></div>
+    </div>
+
+    <!-- JUSTIFICATIVA CIENTÍFICA -->
+    <div class="slabel">Embasamento Científico</div>
+    <div class="sci">
+      <div class="sci-title">🔬 Por que este treino?</div>
+      <div class="sci-txt" id="sciTxt">—</div>
+    </div>
+
+    <!-- PROGRESSÃO -->
+    <div class="card" style="margin-bottom:10px">
+      <div style="padding:12px 14px">
+        <div class="ic-label">📈 Progressão Recomendada</div>
+        <div class="ic-val" id="progTxt" style="margin-top:5px;font-size:13px;color:#ccc;line-height:1.5"></div>
+      </div>
+    </div>
+
+    <!-- DICAS -->
+    <div class="dicas" id="dicas" style="display:none">
+      <div class="dicas-title">💡 DICAS DO PERSONAL</div>
+      <div id="dicasList"></div>
+    </div>
+
+    <!-- LOG MFIT -->
+    <div class="log" id="log">
+      <div class="log-title">🤖 Automação MFIT — Tempo Real</div>
+      <div id="logLines"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let nivel='', dias=0, treino=null, ws=null;
+
+function conectarWS(){
+  try{
+    const proto=location.protocol==='https:'?'wss:':'ws:';
+    ws=new WebSocket(`${proto}//${location.host}`);
+    ws.onmessage=e=>{try{const{tipo,msg,ts}=JSON.parse(e.data);addLog(msg,tipo,ts)}catch{}};
+    ws.onclose=()=>setTimeout(conectarWS,3000);
+  }catch{}
+}
+
+async function checkStatus(){
+  try{
+    const r=await fetch('/api/status');
+    const d=await r.json();
+    const p=document.getElementById('pill'),t=document.getElementById('pillTxt');
+    if(d.anthropic&&d.mfit_email){t.textContent='IA + MFIT OK';p.style.color='var(--ok)'}
+    else if(d.anthropic){t.textContent='MFIT PENDENTE';p.style.color='var(--a2)'}
+    else{t.textContent='CONFIG FALTANDO';p.style.color='var(--a2)'}
+  }catch{
+    document.getElementById('pillTxt').textContent='SEM SERVIDOR';
+    document.getElementById('pill').style.color='var(--err)';
+    document.getElementById('btnMfit').disabled=true;
+  }
+}
+
+function setNivel(n,b){document.querySelectorAll('.lvl').forEach(x=>x.classList.remove('on'));b.classList.add('on');nivel=n}
+function setDia(n,b){document.querySelectorAll('.dia').forEach(x=>x.classList.remove('on'));b.classList.add('on');dias=n}
+function showErr(m){const e=document.getElementById('errMsg');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),5000)}
+
+function renderResult(t){
+  // Perfil
+  document.getElementById('rNivel').innerHTML=`<strong>${t.nivel}</strong>`;
+  const tecCount=t.tecnicas_usadas?.length||0;
+  document.getElementById('rTecnicas').innerHTML=tecCount>0?`<strong style="color:var(--a2)">${tecCount} técnica${tecCount>1?'s':''}</strong>`:'<strong style="color:var(--ok)">Nenhuma — foco em técnica</strong>';
+  document.getElementById('rPerfil').textContent=t.perfil_nivel||'—';
+
+  // Volume
+  if(t.volume_semanal){
+    document.getElementById('volDesc').textContent=t.volume_semanal.descricao||'';
+    const grupos=t.volume_semanal.grupos||[];
+    const maxSeries=Math.max(...grupos.map(g=>g.series_semana),1);
+    document.getElementById('volTable').innerHTML=`
+      <tr><th>Grupo Muscular</th><th>Séries/sem</th><th>Freq.</th></tr>
+      ${grupos.map(g=>`
+        <tr>
+          <td>${g.grupo}</td>
+          <td>
+            ${g.series_semana}
+            <div class="vol-bar"><div class="vol-bar-fill" style="width:${Math.round(g.series_semana/maxSeries*100)}%"></div></div>
+          </td>
+          <td style="color:var(--m)">${g.frequencia_semana}x</td>
+        </tr>
+      `).join('')}`;
+  }
+
+  // Dias / Exercícios
+  const cards=document.getElementById('cards');
+  cards.innerHTML=t.dias.map(dia=>`
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">${dia.nome}</div>
+        <div class="card-meta">
+          ${dia.foco?`<span class="tag">${dia.foco}</span>`:''}
+          ${dia.volume_dia?`<span class="tag ok">${dia.volume_dia}</span>`:''}
+          <span class="tag">${dia.exercicios.length} exercícios</span>
+        </div>
+      </div>
+      ${dia.exercicios.map(ex=>`
+        <div class="ex">
+          <div class="ex-info">
+            <div class="ex-nome">${ex.nome}</div>
+            ${ex.grupo_muscular?`<div class="ex-grupo">🎯 ${ex.grupo_muscular}${ex.funcao?' · '+ex.funcao:''}</div>`:''}
+            ${ex.observacao?`<div class="ex-obs">${ex.observacao}</div>`:''}
+            ${ex.rir?`<div class="ex-obs" style="color:var(--a2)">📊 ${ex.rir}${ex.intensidade_pct?' · '+ex.intensidade_pct:''}</div>`:''}
+            ${ex.tecnica_intensificadora?`<div class="ex-tec">⚡ <strong>${ex.tecnica_intensificadora.toUpperCase()}</strong>${ex.descricao_tecnica?' — '+ex.descricao_tecnica:''}</div>`:''}
+          </div>
+          <div class="ex-bdg">
+            <div class="bdg"><div class="bdg-v">${ex.series}</div><span class="bdg-l">SÉRIES</span></div>
+            <div class="bdg"><div class="bdg-v">${ex.repeticoes}</div><span class="bdg-l">REPS</span></div>
+            <div class="bdg"><div class="bdg-v">${Math.round(ex.descanso_segundos/60*10)/10}min</div><span class="bdg-l">PAUSA</span></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  // Técnicas
+  if(t.tecnicas_usadas?.length){
+    document.getElementById('tecSection').style.display='block';
+    document.getElementById('tecList').innerHTML=t.tecnicas_usadas.map(tc=>`
+      <div class="tec-item">
+        <div class="tec-nome">⚡ ${tc.nome}</div>
+        <div class="tec-sci">🔬 ${tc.base_cientifica}</div>
+        <div class="tec-when">📌 ${tc.quando_aplicar}</div>
+      </div>
+    `).join('');
+  }
+
+  // Ciência
+  document.getElementById('sciTxt').textContent=t.justificativa_cientifica||'—';
+  document.getElementById('progTxt').textContent=t.progressao_recomendada||'—';
+
+  // Dicas
+  if(t.dicas?.length){
+    document.getElementById('dicas').style.display='block';
+    document.getElementById('dicasList').innerHTML=t.dicas.map(d=>`<div class="dica"><span>•</span>${d}</div>`).join('');
+  }
+}
+
+async function gerar(){
+  const nome=document.getElementById('nome').value.trim();
+  const obj=document.getElementById('obj').value;
+  if(!nome)return showErr('⚠️ Informe o nome do aluno');
+  if(!obj)return showErr('⚠️ Selecione o objetivo');
+  if(!nivel)return showErr('⚠️ Selecione o nível');
+  if(!dias)return showErr('⚠️ Selecione os dias por semana');
+
+  const btn=document.getElementById('btnG');
+  btn.disabled=true;
+  document.getElementById('load').classList.add('show');
+  document.getElementById('result').classList.remove('show');
+
+  const loadMsgs=['ANALISANDO PERFIL CIENTÍFICO...','CALCULANDO VOLUME IDEAL...','SELECIONANDO TÉCNICAS...','MONTANDO PROGRAMAÇÃO...'];
+  let li=0;
+  const lt=setInterval(()=>{document.getElementById('loadTxt').textContent=loadMsgs[li++%loadMsgs.length]},1800);
+
+  const payload={
+    nomeAluno:nome, objetivo:obj, nivel, diasSemana:dias,
+    tempo:document.getElementById('tempo').value,
+    equipamentos:document.getElementById('equip').value,
+    divisao:document.getElementById('div').value,
+    restricoes:document.getElementById('rest').value.trim(),
+    observacoes:document.getElementById('obs').value.trim()
+  };
+
+  try{
+    let t;
+    try{
+      const r=await fetch('/api/gerar-treino',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d=await r.json();
+      if(!d.sucesso)throw new Error(d.erro);
+      t=d.treino;
+    }catch{t=await gerarDireto(payload)}
+    treino=t;
+    renderResult(t);
+    document.getElementById('result').classList.add('show');
+    document.getElementById('result').scrollIntoView({behavior:'smooth'});
+  }catch(e){showErr('❌ '+e.message)}
+  finally{clearInterval(lt);btn.disabled=false;document.getElementById('load').classList.remove('show')}
+}
+
+async function gerarDireto(p){
+  const sys=`Você é um Personal Trainer com PhD em Ciências do Exercício. Base: Schoenfeld (2010,2017), Krieger (2010), ACSM Guidelines. Retorne SOMENTE JSON válido.
+
+INICIANTE(0-12m): vol 10-15 séries/grupo/sem, 60-70%1RM, RIR 3-4, 12-15 reps, ZERO técnicas intensificadoras.
+INTERMEDIÁRIO(1-3a): vol 15-20, 70-80%1RM, RIR 2-3, 8-12 reps, até 2 técnicas por sessão (drop-set,rest-pause,super-set).
+AVANÇADO(3+a): vol 20-25, 75-85%1RM, RIR 0-2, 6-15 reps variado, todas as técnicas (myo-reps,BFR,mechanical drop-set,loaded stretch,etc).`;
+
+  const prompt=`Crie treino científico: Nome:${p.nomeAluno}, Objetivo:${p.objetivo}, Nível:${p.nivel}, ${p.diasSemana}x/semana, ${p.tempo}, ${p.equipamentos}, Divisão:${p.divisao}${p.restricoes?', Restrições:'+p.restricoes:''}.
+
+Retorne SOMENTE este JSON:
+{"aluno":"","objetivo":"","nivel":"","perfil_nivel":"","volume_semanal":{"descricao":"","grupos":[{"grupo":"Peito","series_semana":16,"frequencia_semana":2}]},"dias":[{"nome":"Treino A — Peito","foco":"Peito","grupos_trabalhados":["Peito"],"volume_dia":"16 séries","exercicios":[{"nome":"Supino Reto","grupo_muscular":"Peito (esternal)","funcao":"Composto principal","series":4,"repeticoes":"8-12","descanso_segundos":90,"rir":"RIR 2-3","intensidade_pct":"70-75% 1RM","tecnica_intensificadora":null,"descricao_tecnica":null,"observacao":""}]}],"tecnicas_usadas":[{"nome":"drop-set","base_cientifica":"","quando_aplicar":""}],"justificativa_cientifica":"","progressao_recomendada":"","dicas":[]}`;
+
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:prompt}]})});
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error?.message||'Erro API');
+  const txt=d.content[0].text.trim().replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+  return JSON.parse(txt);
+}
+
+async function enviarMfit(){
+  if(!treino)return;
+  const nome=document.getElementById('nome').value.trim();
+  const btn=document.getElementById('btnMfit');
+  btn.disabled=true;btn.textContent='⏳ ENVIANDO...';
+  document.getElementById('log').classList.add('show');
+  document.getElementById('logLines').innerHTML='';
+  try{
+    const r=await fetch('/api/enviar-mfit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nomeAluno:nome,treino})});
+    const d=await r.json();
+    if(d.sucesso){addLog('✅ Automação iniciada!','ok')}
+    else{addLog('❌ '+d.erro,'erro');btn.disabled=false;btn.textContent='🤖 ENVIAR PRO MFIT'}
+  }catch{addLog('❌ Servidor offline','erro');btn.disabled=false;btn.textContent='🤖 ENVIAR PRO MFIT'}
+}
+
+function addLog(msg,tipo,ts=''){
+  const el=document.createElement('div');
+  el.className=`log-line ${tipo||'info'}`;
+  el.innerHTML=(ts?`<span class="ts">${ts}</span>  `:'')+'<span class="msg">'+msg+'</span>';
+  document.getElementById('logLines').appendChild(el);
+  document.getElementById('log').scrollTop=9999;
+  if(msg.includes('sucesso')){document.getElementById('btnMfit').textContent='✅ CRIADO NO MFIT!'}
+}
+
+function copiar(){
+  if(!treino)return;
+  let txt=`🏋️ TREINO IGOR FERREIRA TEAM\n${treino.aluno} — ${treino.objetivo} (${treino.nivel})\n\n`;
+  treino.dias.forEach(d=>{
+    txt+=`━━ ${d.nome} ━━\n`;
+    d.exercicios.forEach(e=>{
+      txt+=`• ${e.nome}: ${e.series}x${e.repeticoes}`;
+      if(e.tecnica_intensificadora)txt+=` [${e.tecnica_intensificadora.toUpperCase()}]`;
+      txt+='\n';
+    });
+    txt+='\n';
+  });
+  if(treino.justificativa_cientifica)txt+=`🔬 Base científica: ${treino.justificativa_cientifica}\n`;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const b=document.querySelector('.act-copy');b.textContent='✅ COPIADO!';
+    setTimeout(()=>b.textContent='📋 COPIAR',2000);
+  });
+}
+
+function whatsapp(){
+  if(!treino)return;
+  let txt=`🏋️ *TREINO IGOR FERREIRA TEAM*\n*${treino.aluno}* — ${treino.objetivo}\n\n`;
+  treino.dias.forEach(d=>{
+    txt+=`*${d.nome}*\n`;
+    d.exercicios.forEach(e=>{
+      txt+=`• ${e.nome}: ${e.series}x${e.repeticoes}`;
+      if(e.tecnica_intensificadora)txt+=` ⚡_${e.tecnica_intensificadora}_`;
+      txt+='\n';
+    });txt+='\n';
+  });
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+
+checkStatus();
+conectarWS();
+</script>
+</body>
+</html>
