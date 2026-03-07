@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 
 const MFIT_URL = 'https://app.mfitpersonal.com.br';
+const MFIT_API = 'https://api.mfitpersonal.com.br';
 
 /**
  * Faz login no MFIT e retorna o browser/page autenticado
@@ -8,7 +9,7 @@ const MFIT_URL = 'https://app.mfitpersonal.com.br';
 async function loginMfit(email, senha, onLog) {
   const browser = await puppeteer.launch({
     headless: 'new',
-    executablePath: process.env.CHROMIUM_PATH || undefined,
+    executablePath: process.env.CHROMIUM_PATH || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -19,15 +20,12 @@ async function loginMfit(email, senha, onLog) {
       '--window-size=1280,800'
     ]
   });
-
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800 });
+  onLog('[MFIT] Abrindo pagina de login...');
+  await page.goto(MFIT_URL + '/login', { waitUntil: 'networkidle2', timeout: 30000 });
 
-  onLog('[MFIT] Abrindo página de login...');
-  await page.goto(`${MFIT_URL}/login`, { waitUntil: 'networkidle2', timeout: 30000 });
-
-  // Preenche email e senha
-  await page.waitForSelector('input[type="email"], input[name="email"], input[placeholder*="e-mail"], input[placeholder*="Email"]', { timeout: 10000 });
+  await page.waitForSelector('input[type="email"], input[name="email"]', { timeout: 10000 });
   const emailInput = await page.$('input[type="email"]') || await page.$('input[name="email"]');
   await emailInput.click({ clickCount: 3 });
   await emailInput.type(email, { delay: 50 });
@@ -42,80 +40,156 @@ async function loginMfit(email, senha, onLog) {
     page.keyboard.press('Enter')
   ]);
 
-  // Verifica se login foi bem sucedido
   const url = page.url();
   if (url.includes('login')) {
     await browser.close();
-    throw new Error('Login falhou — verifique email e senha do MFIT');
+    throw new Error('Login falhou - verifique email e senha do MFIT');
   }
-
   onLog('[MFIT] Login realizado com sucesso!');
   return { browser, page };
+}
+
+/**
+ * Busca todos os alunos ativos do personal no MFIT via API
+ */
+async function buscarAlunos({ email, senha, onLog = console.log }) {
+  let browser;
+  try {
+    const { browser: b, page } = await loginMfit(email, senha, onLog);
+    browser = b;
+    onLog('[MFIT] Buscando lista de alunos...');
+
+    await page.goto('https://app.mfitpersonal.com.br/user/client/list', { waitUntil: 'networkidle2', timeout: 20000 });
+    await page.waitForTimeout(2000);
+
+    const data = await page.evaluate(async () => {
+      const res = await fetch('https://api.mfitpersonal.com.br/user/client/?status=0&page=1&pageSize=100&search=', {
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+
+    await browser.close();
+
+    let alunos = [];
+    if (Array.isArray(data)) alunos = data;
+    else if (data.results) alunos = data.results;
+    else if (data.clients) alunos = data.clients;
+    else if (data.data) alunos = data.data;
+
+    onLog('[MFIT] ' + alunos.length + ' alunos encontrados!');
+    return { sucesso: true, alunos };
+  } catch (err) {
+    if (browser) await browser.close();
+    onLog('[MFIT] Erro ao buscar alunos: ' + err.message);
+    return { sucesso: false, erro: err.message, alunos: [] };
+  }
+}
+
+/**
+ * Busca o catalogo completo de exercicios do personal no MFIT via API
+ */
+async function buscarExercicios({ email, senha, onLog = console.log }) {
+  let browser;
+  try {
+    const { browser: b, page } = await loginMfit(email, senha, onLog);
+    browser = b;
+    onLog('[MFIT] Buscando catalogo de exercicios...');
+
+    await page.goto('https://app.mfitpersonal.com.br/user/client/list', { waitUntil: 'networkidle2', timeout: 20000 });
+    await page.waitForTimeout(2000);
+
+    let todosExercicios = [];
+    let paginaAtual = 1;
+    let temMais = true;
+
+    while (temMais) {
+      const pg = paginaAtual;
+      const data = await page.evaluate(async (pg) => {
+        const res = await fetch('https://api.mfitpersonal.com.br/user/exercise/?page=' + pg + '&pageSize=200&search=', {
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }, pg);
+
+      let exerciciosPagina = [];
+      if (Array.isArray(data)) exerciciosPagina = data;
+      else if (data.results) exerciciosPagina = data.results;
+      else if (data.exercises) exerciciosPagina = data.exercises;
+      else if (data.data) exerciciosPagina = data.data;
+
+      todosExercicios = todosExercicios.concat(exerciciosPagina);
+
+      if (exerciciosPagina.length < 200 || paginaAtual >= 10) {
+        temMais = false;
+      } else {
+        paginaAtual++;
+      }
+    }
+
+    await browser.close();
+    onLog('[MFIT] ' + todosExercicios.length + ' exercicios encontrados!');
+    return { sucesso: true, exercicios: todosExercicios };
+  } catch (err) {
+    if (browser) await browser.close();
+    onLog('[MFIT] Erro ao buscar exercicios: ' + err.message);
+    return { sucesso: false, erro: err.message, exercicios: [] };
+  }
 }
 
 /**
  * Busca um aluno pelo nome dentro do MFIT
  */
 async function buscarAluno(page, nomeAluno, onLog) {
-  onLog(`[MFIT] Buscando aluno: ${nomeAluno}`);
+  onLog('[MFIT] Buscando aluno: ' + nomeAluno);
+  await page.goto('https://app.mfitpersonal.com.br/students', { waitUntil: 'networkidle2', timeout: 30000 });
 
-  // Vai para a lista de alunos
-  await page.goto(`${MFIT_URL}/students`, { waitUntil: 'networkidle2', timeout: 30000 });
-
-  // Tenta usar campo de busca
   try {
-    const searchInput = await page.$('input[placeholder*="buscar"], input[placeholder*="aluno"], input[placeholder*="pesquis"], input[type="search"]');
+    const searchInput = await page.$('input[placeholder*="buscar"], input[placeholder*="aluno"], input[type="search"]');
     if (searchInput) {
       await searchInput.type(nomeAluno, { delay: 80 });
       await page.waitForTimeout(1500);
     }
   } catch (e) {
-    onLog('[MFIT] Campo de busca não encontrado, listando todos os alunos...');
+    onLog('[MFIT] Campo de busca nao encontrado');
   }
 
-  // Clica no aluno encontrado
   const alunoEncontrado = await page.evaluate((nome) => {
     const elementos = Array.from(document.querySelectorAll('*'));
     for (const el of elementos) {
       if (el.children.length === 0 && el.textContent.trim().toLowerCase().includes(nome.toLowerCase())) {
         const link = el.closest('a') || el.closest('[role="button"]') || el.closest('li') || el.closest('.card');
-        if (link) {
-          link.click();
-          return true;
-        }
+        if (link) { link.click(); return true; }
       }
     }
     return false;
   }, nomeAluno);
 
   if (!alunoEncontrado) {
-    throw new Error(`Aluno "${nomeAluno}" não encontrado no MFIT. Verifique o nome exato.`);
+    throw new Error('Aluno "' + nomeAluno + '" nao encontrado no MFIT.');
   }
-
   await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
-  onLog(`[MFIT] Aluno encontrado: ${nomeAluno}`);
+  onLog('[MFIT] Aluno encontrado: ' + nomeAluno);
 }
 
 /**
  * Cria uma nova rotina de treino no perfil do aluno
  */
 async function criarRotinaTreino(page, nomeRotina, onLog) {
-  onLog(`[MFIT] Criando rotina: ${nomeRotina}`);
-
-  // Procura aba ou botão de treinos no perfil do aluno
+  onLog('[MFIT] Criando rotina: ' + nomeRotina);
   try {
-    await page.waitForSelector('[href*="treino"], [href*="workout"], button:has-text("Treino"), a:has-text("Treinos")', { timeout: 8000 });
-    const treinoBtn = await page.$('[href*="treino"], [href*="workout"]') || await page.evaluateHandle(() => {
+    await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('a, button'));
-      return btns.find(b => b.textContent.toLowerCase().includes('treino'));
+      const btn = btns.find(b => b.textContent.toLowerCase().includes('treino'));
+      if (btn) btn.click();
     });
-    if (treinoBtn) await treinoBtn.click();
     await page.waitForTimeout(1500);
-  } catch(e) {
-    onLog('[MFIT] Navegando pela URL de treinos...');
-  }
+  } catch(e) {}
 
-  // Clica em "Nova Rotina" ou "Adicionar"
   await page.evaluate(() => {
     const btns = Array.from(document.querySelectorAll('button, a'));
     const btn = btns.find(b =>
@@ -126,132 +200,116 @@ async function criarRotinaTreino(page, nomeRotina, onLog) {
     );
     if (btn) btn.click();
   });
-
   await page.waitForTimeout(2000);
 
-  // Preenche nome da rotina
   try {
-    const inputNome = await page.$('input[placeholder*="nome"], input[placeholder*="rotina"], input[name*="name"], input[name*="nome"]');
+    const inputNome = await page.$('input[placeholder*="nome"], input[placeholder*="rotina"], input[name*="name"]');
     if (inputNome) {
       await inputNome.click({ clickCount: 3 });
       await inputNome.type(nomeRotina, { delay: 60 });
     }
-  } catch(e) {
-    onLog('[MFIT] Campo de nome não encontrado automaticamente');
-  }
-
-  onLog(`[MFIT] Rotina "${nomeRotina}" iniciada`);
+  } catch(e) {}
+  onLog('[MFIT] Rotina "' + nomeRotina + '" iniciada');
 }
 
 /**
- * Adiciona um exercício ao treino pelo nome (pesquisa)
+ * Adiciona um exercicio ao treino
  */
-async function adicionarExercicio(page, nomeExercicio, onLog_unused, series, reps, descanso) {
-  onLog(`[MFIT] Adicionando exercício: ${nomeExercicio}`);
-
-  // Clica em "Adicionar exercício" ou "+"
+async function adicionarExercicio(page, nomeExercicio, onLog, series, reps, descanso) {
+  onLog('[MFIT] Adicionando exercicio: ' + nomeExercicio);
   await page.evaluate(() => {
     const btns = Array.from(document.querySelectorAll('button, a'));
     const btn = btns.find(b =>
-      b.textContent.toLowerCase().includes('exercício') ||
+      b.textContent.toLowerCase().includes('exercicio') ||
       b.textContent.toLowerCase().includes('adicionar') ||
       b.textContent === '+'
     );
     if (btn) btn.click();
   });
-
   await page.waitForTimeout(1500);
 
-  // Pesquisa o exercício
   try {
-    const searchInput = await page.$('input[placeholder*="exercício"], input[placeholder*="buscar"], input[placeholder*="procurar"]');
+    const searchInput = await page.$('input[placeholder*="exercicio"], input[placeholder*="buscar"]');
     if (searchInput) {
       await searchInput.type(nomeExercicio, { delay: 80 });
       await page.waitForTimeout(1500);
-
-      // Clica no primeiro resultado
       await page.evaluate((nome) => {
-        const items = Array.from(document.querySelectorAll('li, [role="option"], .exercise-item, .list-item'));
+        const items = Array.from(document.querySelectorAll('li, [role="option"], .exercise-item'));
         const item = items.find(i => i.textContent.toLowerCase().includes(nome.toLowerCase().split(' ')[0]));
         if (item) item.click();
       }, nomeExercicio);
-
       await page.waitForTimeout(1000);
     }
-  } catch(e) {
-    onLog(`[MFIT] Não conseguiu buscar exercício "${nomeExercicio}" automaticamente`);
-  }
+  } catch(e) {}
 
-  // Preenche séries, reps, descanso
   try {
-    const inputs = await page.$$('input[type="number"], input[placeholder*="série"], input[placeholder*="repetição"], input[placeholder*="descanso"]');
+    const inputs = await page.$$('input[type="number"]');
     if (inputs.length >= 1) { await inputs[0].click({ clickCount: 3 }); await inputs[0].type(String(series)); }
     if (inputs.length >= 2) { await inputs[1].click({ clickCount: 3 }); await inputs[1].type(String(reps)); }
     if (inputs.length >= 3) { await inputs[2].click({ clickCount: 3 }); await inputs[2].type(String(descanso)); }
-  } catch(e) {
-    onLog('[MFIT] Campos de séries/reps não encontrados automaticamente');
-  }
+  } catch(e) {}
 
-  // Salva o exercício
   await page.evaluate(() => {
     const btns = Array.from(document.querySelectorAll('button'));
-    const btn = btns.find(b => b.textContent.toLowerCase().includes('salvar') || b.textContent.toLowerCase().includes('confirmar') || b.textContent.toLowerCase().includes('ok'));
+    const btn = btns.find(b =>
+      b.textContent.toLowerCase().includes('salvar') ||
+      b.textContent.toLowerCase().includes('confirmar') ||
+      b.textContent.toLowerCase().includes('ok')
+    );
     if (btn) btn.click();
   });
-
   await page.waitForTimeout(1000);
 }
 
 /**
- * Função principal: executa toda a automação
+ * Funcao principal: cria treino completo no MFIT para um aluno
  */
 async function criarTreinoNoMfit({ email, senha, nomeAluno, treinoData, onLog = console.log }) {
   let browser;
   const log = [];
-
   try {
     const { browser: b, page } = await loginMfit(email, senha, onLog);
     browser = b;
-
-    log.push('✅ Login realizado');
+    log.push('Login realizado');
 
     await buscarAluno(page, nomeAluno, onLog);
-    log.push(`✅ Aluno "${nomeAluno}" encontrado`);
+    log.push('Aluno "' + nomeAluno + '" encontrado');
 
-    // Para cada dia de treino no JSON gerado
     for (const dia of treinoData.dias) {
-      await criarRotinaTreino(page, dia.nome);
-      log.push(`✅ Rotina "${dia.nome}" criada`);
+      await criarRotinaTreino(page, dia.nome, onLog);
+      log.push('Rotina "' + dia.nome + '" criada');
 
       for (const exercicio of dia.exercicios) {
         await adicionarExercicio(
           page,
           exercicio.nome,
+          onLog,
           exercicio.series,
           exercicio.repeticoes,
           exercicio.descanso_segundos || 60
         );
-        log.push(`  ✅ Exercício: ${exercicio.nome}`);
+        log.push('  Exercicio: ' + exercicio.nome);
       }
 
-      // Salva a rotina
       await page.evaluate(() => {
         const btns = Array.from(document.querySelectorAll('button'));
-        const btn = btns.find(b => b.textContent.toLowerCase().includes('salvar') || b.textContent.toLowerCase().includes('concluir'));
+        const btn = btns.find(b =>
+          b.textContent.toLowerCase().includes('salvar') ||
+          b.textContent.toLowerCase().includes('concluir')
+        );
         if (btn) btn.click();
       });
       await page.waitForTimeout(2000);
     }
 
-    log.push('🎉 Treino criado com sucesso no MFIT!');
+    log.push('Treino criado com sucesso no MFIT!');
     await browser.close();
     return { sucesso: true, log };
-
   } catch (err) {
     if (browser) await browser.close();
-    log.push(`❌ Erro: ${err.message}`);
+    log.push('Erro: ' + err.message);
     return { sucesso: false, log, erro: err.message };
   }
 }
 
-module.exports = { criarTreinoNoMfit };
+module.exports = { criarTreinoNoMfit, buscarAlunos, buscarExercicios };
